@@ -1,6 +1,6 @@
 {
 	"name": "tunnel-vision",
-	"version": "0.1.10",
+	"version": "0.1.11",
 	"type": "commonjs",
 	"engines": {
 		"node": "16"
