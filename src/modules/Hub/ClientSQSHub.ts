@@ -68,11 +68,13 @@ export class ClientSQSHub {
 		delete request.headers['host'];
 		delete request.headers['x-forwarded-port'];
 		delete request.headers['x-forwarded-proto'];
-		const data = request.method.toUpperCase() === 'GET' ? undefined : request.body;
+		if (request.method.toUpperCase() === 'GET') {
+			delete request.body;
+		}
 		const response = await this.request()
 			.request({
 				method: request.method,
-				data,
+				data: request.body,
 				params: request.query,
 				headers: request.headers as AxiosRequestHeaders,
 				url: request.url
