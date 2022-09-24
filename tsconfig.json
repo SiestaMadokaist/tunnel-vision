@@ -18,7 +18,7 @@
 		"target": "ES2020",
 		"outDir": "dist"
 	},
-	"include": ["src/**/*.ts"],
+	"include": ["src/**/*.ts", "tunnelvision.ts"],
 	"exclude": [
 		"serverless.ts",
 		"node_modules/**/*",

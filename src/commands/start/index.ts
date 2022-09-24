@@ -1,7 +1,5 @@
 import * as sqs from '@aws-sdk/client-sqs';
 import { ClientSQSHub } from '../../modules/Hub/ClientSQSHub';
-// import { LocalVars } from '../../configs/vars';
-// import type * as C from 'commander';
 import fs from 'fs';
 import dotenv from 'dotenv';
 interface IStart {
@@ -20,7 +18,7 @@ export async function start(opts: IStart): Promise<void> {
 	const hub = new ClientSQSHub({
 		incoming: {
 			channel: Config.REQUEST_QUEUE,
-			hostname: opts.target
+			hostname: opts.target ?? Config.TARGET_HOST
 		},
 		outgoing: {
 			channel: Config.RESPONSE_QUEUE,

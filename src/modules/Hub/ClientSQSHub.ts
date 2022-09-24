@@ -44,7 +44,8 @@ export class ClientSQSHub {
 			MessageBody: JSON.stringify({ type: 'connect' }),
 			QueueUrl: this.props.outgoing.channel
 		});
-		this.log(`${this.#publishCounter} ClientHub: connecting to ${this.props.outgoing.channel}`);
+		const message = `ClientHub: connecting with ${this.props.incoming.hostname}\nvia ${this.props.outgoing.channel}\n`;
+		this.log(message);
 		await this.client().send(command).catch(console.error);
 	}
 

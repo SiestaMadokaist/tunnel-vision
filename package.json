@@ -6,7 +6,7 @@
 		"node": "16"
 	},
 	"private": false,
-	"bin": "./dist/commands/index",
+	"bin": "./tunnelvision.js",
 	"scripts": {
 		".prepare": "husky install",
 		"pre-commit-lint": "lint-staged",
