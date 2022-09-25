@@ -19,6 +19,7 @@ npm i -g tunnel-vision
 AWS_REGION="ap-southeast-1"
 
 TARGET_HOST="https://example.com"
+REMOTE_HOST="https://remoteproxy.myapigateway.com"
 REQUEST_QUEUE="https://sqs.ap-southeast-1.amazonaws.com/0000000/request-queue"
 RESPONSE_QUEUE="https://sqs.ap-southeast-1.amazonaws.com/000000/response-queue"
 ```

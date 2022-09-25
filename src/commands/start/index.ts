@@ -24,6 +24,7 @@ export async function start(opts: IStart): Promise<void> {
 		},
 		outgoing: {
 			channel: Config.RESPONSE_QUEUE,
+			hostname: Config.REMOTE_HOST,
 			client: new sqs.SQSClient({})
 		},
 		stdout: process.stdout

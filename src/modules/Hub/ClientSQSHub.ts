@@ -12,6 +12,7 @@ export interface IClientSQSHub {
 		hostname: string;
 	};
 	outgoing: {
+		hostname: string;
 		channel: string;
 		client: sqs.SQSClient;
 	};
@@ -25,8 +26,11 @@ export interface IRespEmitter<O> extends EventEmitter {
 
 export class ClientSQSHub {
 	#memo = new Memoizer<{
+		connectionRequest: AxiosInstance;
+		sourceRequest: AxiosInstance;
 		consumer: Consumer;
 		started: Promise<boolean>;
+		keepConnection: Promise<boolean>;
 	}>();
 	#publishCounter: number = 0;
 	constructor(private props: IClientSQSHub) {}
@@ -39,30 +43,35 @@ export class ClientSQSHub {
 		this.props.stdout.write(`${message}\n`);
 	}
 
-	private async connect(): Promise<void> {
-		const command = new sqs.SendMessageCommand({
-			MessageBody: JSON.stringify({ type: 'connect' }),
-			QueueUrl: this.props.outgoing.channel
+	private connectionRequest(): AxiosInstance {
+		return this.#memo.memoize('connectionRequest', () => {
+			return axios.create({ baseURL: this.props.outgoing.hostname, timeout: 30_000 });
 		});
-		const message = `ClientHub: connecting with ${this.props.incoming.hostname}\nvia ${this.props.outgoing.channel}\n`;
-		this.log(message);
-		await this.client().send(command).catch(console.error);
 	}
 
-	start(): Promise<boolean> {
-		return this.#memo.memoize('started', async () => {
-			setInterval(() => {
-				this.connect().catch(console.error);
-			}, TIME.MINUTE);
-			await this.connect();
-			const consumer = this.requestConsumer();
-			consumer.start();
+	private async keepConnection(): Promise<boolean> {
+		return this.#memo.memoize('keepConnection', async () => {
+			const connector = this.connectionRequest();
+			const doConnect = async () => {
+				await connector.put('/$internals/connect').catch(console.error);
+			};
+			setInterval(doConnect, TIME.MINUTE);
+			await doConnect();
 			return true;
 		});
 	}
 
-	private request(): AxiosInstance {
-		return axios.create({ baseURL: this.props.incoming.hostname, timeout: 30_000 });
+	async start(): Promise<boolean> {
+		await this.keepConnection();
+		const consumer = this.requestConsumer();
+		consumer.start();
+		return true;
+	}
+
+	private sourceRequest(): AxiosInstance {
+		return this.#memo.memoize('sourceRequest', () => {
+			return axios.create({ baseURL: this.props.incoming.hostname, timeout: 30_000 });
+		});
 	}
 
 	async getResponse(request: IRequestMessage): Promise<IResponse> {
@@ -72,7 +81,7 @@ export class ClientSQSHub {
 		if (request.method.toUpperCase() === 'GET') {
 			delete request.body;
 		}
-		const response = await this.request()
+		const response = await this.sourceRequest()
 			.request({
 				method: request.method,
 				data: request.body,
