@@ -45,6 +45,7 @@ export class ClientSQSHub {
 
 	private connectionRequest(): AxiosInstance {
 		return this.#memo.memoize('connectionRequest', () => {
+			console.log({ c: this.props.outgoing.hostname });
 			return axios.create({ baseURL: this.props.outgoing.hostname, timeout: 30_000 });
 		});
 	}
@@ -53,7 +54,8 @@ export class ClientSQSHub {
 		return this.#memo.memoize('keepConnection', async () => {
 			const connector = this.connectionRequest();
 			const doConnect = async () => {
-				await connector.put('/$internals/connect').catch(console.error);
+				this.log(`connecting with ${this.props.outgoing.hostname}`);
+				await connector.put('/~internals/connect');
 			};
 			setInterval(doConnect, TIME.MINUTE);
 			await doConnect();
