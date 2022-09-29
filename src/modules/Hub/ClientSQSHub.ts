@@ -76,6 +76,23 @@ export class ClientSQSHub {
 		});
 	}
 
+	encode(data: string | object, contentType?: string): string | object {
+		if (typeof contentType === 'undefined') {
+			return data;
+		}
+		if (contentType.startsWith('image/')) {
+			const imageData = data as string;
+			// Buffer.from(imageData, '');
+			return Buffer.from(imageData, 'utf8').toString('base64');
+		}
+		return data;
+	}
+
+	isImage(request: IRequestMessage): boolean {
+		const imageFormat = /\.png|\.jpg|\.jpeg|\.gif|\.webp/;
+		return request.url.toLowerCase().match(imageFormat) !== null;
+	}
+
 	async getResponse(request: IRequestMessage): Promise<IResponse> {
 		delete request.headers['host'];
 		delete request.headers['x-forwarded-port'];
@@ -83,13 +100,15 @@ export class ClientSQSHub {
 		if (request.method.toUpperCase() === 'GET') {
 			delete request.body;
 		}
+		const responseType = this.isImage(request) ? 'arraybuffer' : 'json';
 		const response = await this.sourceRequest()
 			.request({
 				method: request.method,
 				data: request.body,
 				params: request.query,
 				headers: request.headers as AxiosRequestHeaders,
-				url: request.url
+				url: request.url,
+				responseType
 			})
 			.catch((error: AxiosError) => {
 				if (error.isAxiosError) {
@@ -100,8 +119,12 @@ export class ClientSQSHub {
 				}
 				throw error;
 			});
+		const headers = response?.headers ?? {};
+		if (this.isImage(request)) {
+			headers['content-type'] = 'image/png';
+		}
 		return {
-			body: response?.data,
+			body: this.encode(response?.data ?? '', response?.headers['content-type']),
 			headers: response?.headers ?? {},
 			statusCode: response?.status ?? 500,
 			requestId: request.requestId,
