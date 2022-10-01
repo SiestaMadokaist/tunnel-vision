@@ -55,7 +55,7 @@ export class ClientSQSHub {
 			const connector = this.connectionRequest();
 			const doConnect = async () => {
 				this.log(`connecting with ${this.props.outgoing.hostname}`);
-				await connector.put('/~internals/connect');
+				await connector.put('/~internals/connect').catch(console.error);
 			};
 			setInterval(doConnect, TIME.MINUTE);
 			await doConnect();
