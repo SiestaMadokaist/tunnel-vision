@@ -6,6 +6,7 @@ import axios, { AxiosError, AxiosInstance, AxiosRequestHeaders } from 'axios';
 import { IRequestMessage, IResponse } from './interface';
 import { Writable } from 'stream';
 import { TIME } from '../../helper/TIME';
+import qs from 'querystring';
 export interface IClientSQSHub {
 	incoming: {
 		channel: string;
@@ -72,7 +73,12 @@ export class ClientSQSHub {
 
 	private sourceRequest(): AxiosInstance {
 		return this.#memo.memoize('sourceRequest', () => {
-			return axios.create({ baseURL: this.props.incoming.hostname, timeout: 30_000 });
+			const instance = axios.create({ baseURL: this.props.incoming.hostname, timeout: 30_000 });
+			instance.interceptors.request.use((config) => {
+				console.log(config);
+				return config;
+			});
+			return instance;
 		});
 	}
 
@@ -93,13 +99,23 @@ export class ClientSQSHub {
 		return request.url.toLowerCase().match(imageFormat) !== null;
 	}
 
-	async getResponse(request: IRequestMessage): Promise<IResponse> {
+	getReformatted(originalRequest: IRequestMessage): IRequestMessage {
+		const request: IRequestMessage = JSON.parse(JSON.stringify(originalRequest));
 		delete request.headers['host'];
 		delete request.headers['x-forwarded-port'];
 		delete request.headers['x-forwarded-proto'];
 		if (request.method.toUpperCase() === 'GET') {
 			delete request.body;
+			delete request.headers['content-length'];
 		}
+		if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
+			request.body = qs.encode(request.body as {});
+		}
+		return request;
+	}
+
+	async getResponse(originalRequest: IRequestMessage): Promise<IResponse> {
+		const request = this.getReformatted(originalRequest);
 		const responseType = this.isImage(request) ? 'arraybuffer' : 'json';
 		const response = await this.sourceRequest()
 			.request({
@@ -147,6 +163,7 @@ export class ClientSQSHub {
 	protected async handleMessage(message: SQSMessage): Promise<void> {
 		const request: IRequestMessage = JSON.parse(message.Body ?? '{}');
 		this.log(`received: ${request.url} #${request.requestId}`);
+		// console.log(JSON.stringify({ request }, null, 2));
 		const response = await this.getResponse(request);
 		this.publish(response);
 	}
