@@ -125,7 +125,7 @@ export class ClientSQSHub {
 	async getResponse(originalRequest: IRequestMessage): Promise<IResponse> {
 		const request = this.getReformatted(originalRequest);
 		const responseType = this.isImage(request) ? 'arraybuffer' : 'json';
-		const requestBody = this.getRequestBody(request);
+		const requestBody = this.getRequestBody(originalRequest);
 		const response = await this.sourceRequest()
 			.request({
 				method: request.method,
