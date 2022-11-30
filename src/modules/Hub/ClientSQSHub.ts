@@ -114,13 +114,22 @@ export class ClientSQSHub {
 		return request;
 	}
 
+	getRequestBody(request: IRequestMessage): unknown {
+		if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
+			const body = request.body as Record<string, string>;
+			return new URLSearchParams(Object.entries(body)).toString();
+		}
+		return request.body;
+	}
+
 	async getResponse(originalRequest: IRequestMessage): Promise<IResponse> {
 		const request = this.getReformatted(originalRequest);
 		const responseType = this.isImage(request) ? 'arraybuffer' : 'json';
+		const requestBody = this.getRequestBody(request);
 		const response = await this.sourceRequest()
 			.request({
 				method: request.method,
-				data: request.body,
+				data: requestBody,
 				params: request.query,
 				headers: request.headers as AxiosRequestHeaders,
 				url: request.url,
