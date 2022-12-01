@@ -75,7 +75,9 @@ export class ClientSQSHub {
 		return this.#memo.memoize('sourceRequest', () => {
 			const instance = axios.create({ baseURL: this.props.incoming.hostname, timeout: 30_000 });
 			instance.interceptors.request.use((config) => {
-				console.log(config);
+				if (config.headers) {
+					delete config.headers['content-length'];
+				}
 				return config;
 			});
 			return instance;
