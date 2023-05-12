@@ -6,6 +6,7 @@ interface IStart {
 	target: string;
 	config: string;
 }
+
 export async function start(opts: IStart): Promise<void> {
 	const Config: Record<string, string> = await new Promise((rs, rj) => {
 		fs.readFile(opts.config, null, (err, result) => {

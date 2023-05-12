@@ -1,0 +1,27 @@
+user1:
+  localhost: http://localhost:8000
+  remotehost: https://user1.xxxx.com
+  request: https://sqs.{{region}}.amazonaws.com/{{accountId}}/{{queueId}}
+  response: https://sqs.{{region}}.amazonaws.com/{{accountId}}/{{queueId}}
+  whitelist:
+    - "/v1/test/*"
+    - "/v2/test/*"
+
+user2:
+  localhost: http://localhost:8000
+  remotehost: https://user1.xxxx.com
+  request: https://sqs.{{region}}.amazonaws.com/{{accountId}}/{{queueId}}
+  response: https://sqs.{{region}}.amazonaws.com/{{accountId}}/{{queueId}}
+  whitelist:
+    - "/v1/test/*"
+    - "/v2/test/*"
+
+user3:
+  localhost: http://localhost:8000
+  remotehost: https://user1.xxxx.com
+  request: https://sqs.{{region}}.amazonaws.com/{{accountId}}/{{queueId}}
+  response: https://sqs.{{region}}.amazonaws.com/{{accountId}}/{{queueId}}
+  whitelist:
+    - "/v1/test/*"
+    - "/v2/test/*"
+
