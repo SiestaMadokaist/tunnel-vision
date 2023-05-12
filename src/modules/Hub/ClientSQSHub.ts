@@ -1,3 +1,4 @@
+import aws from 'aws-sdk';
 import * as sqs from '@aws-sdk/client-sqs';
 import { Consumer, SQSMessage } from 'sqs-consumer';
 import { Memoizer } from '../../helper/Memoizer';
@@ -15,8 +16,15 @@ export interface IClientSQSHub {
 	outgoing: {
 		hostname: string;
 		channel: string;
-		client: sqs.SQSClient;
 	};
+	awsConfig: {
+		credentials: {
+			accessKeyId: string;
+			secretAccessKey: string;
+		};
+		region: string;
+	}
+	whitelist: string[];
 	stdout: Writable;
 }
 
@@ -29,7 +37,7 @@ export class ClientSQSHub {
 	#memo = new Memoizer<{
 		connectionRequest: AxiosInstance;
 		sourceRequest: AxiosInstance;
-		consumer: Consumer;
+		consumer: Promise<Consumer>;
 		started: Promise<boolean>;
 		keepConnection: Promise<boolean>;
 	}>();
@@ -37,7 +45,8 @@ export class ClientSQSHub {
 	constructor(private props: IClientSQSHub) {}
 
 	client(): sqs.SQSClient {
-		return this.props.outgoing.client;
+		const { awsConfig } = this.props;
+		return new sqs.SQSClient(awsConfig);
 	}
 
 	private log(message: string): void {
@@ -51,12 +60,17 @@ export class ClientSQSHub {
 		});
 	}
 
+	private whitelist(): string[] {
+		return this.props.whitelist ?? [];
+	}
+
 	private async keepConnection(): Promise<boolean> {
 		return this.#memo.memoize('keepConnection', async () => {
 			const connector = this.connectionRequest();
 			const doConnect = async () => {
 				this.log(`connecting with ${this.props.outgoing.hostname}`);
-				await connector.put('/~internals/connect').catch(console.error);
+				const data = { whitelist: this.whitelist() };
+				await connector.put('/~internals/connect', data).catch(console.error)
 			};
 			setInterval(doConnect, TIME.MINUTE);
 			await doConnect();
@@ -66,7 +80,7 @@ export class ClientSQSHub {
 
 	async start(): Promise<boolean> {
 		await this.keepConnection();
-		const consumer = this.requestConsumer();
+		const consumer = await this.requestConsumer();
 		consumer.start();
 		return true;
 	}
@@ -179,10 +193,11 @@ export class ClientSQSHub {
 		this.publish(response);
 	}
 
-	private requestConsumer(): Consumer {
-		return this.#memo.memoize('consumer', () => {
+	private async requestConsumer(): Promise<Consumer> {
+		return this.#memo.memoize('consumer', async  () => {
 			this.log(`listening message from ${this.props.incoming.channel}`);
 			return Consumer.create({
+				sqs: new aws.SQS(this.props.awsConfig),
 				queueUrl: this.props.incoming.channel,
 				handleMessage: async (message) => this.handleMessage(message).catch(console.error)
 			});

@@ -3,8 +3,8 @@ import { start } from './start';
 program
 	.command('start')
 	.description('start the tunnel-vision client')
-	.option('-t, --target <string>', 'target host')
-	.option('-c, --config [string]', 'used config file', `${process.env.HOME}/.tunnelvision`)
+	.option('-a, --account <string>', 'one of the account defined in config file')
+	.option('-c, --config [string]', 'used config file', `${process.env.HOME}/.tunnelvision.yaml`)
 	.action(start);
 
 export { program };

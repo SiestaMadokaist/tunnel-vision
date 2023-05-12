@@ -1,4 +1,6 @@
 user1:
+  profile: user1
+  region: "ap-southeast-1"
   localhost: http://localhost:8000
   remotehost: https://user1.xxxx.com
   request: https://sqs.{{region}}.amazonaws.com/{{accountId}}/{{queueId}}
@@ -8,6 +10,8 @@ user1:
     - "/v2/test/*"
 
 user2:
+  profile: user2
+  region: "ap-southeast-1"
   localhost: http://localhost:8000
   remotehost: https://user1.xxxx.com
   request: https://sqs.{{region}}.amazonaws.com/{{accountId}}/{{queueId}}
@@ -17,6 +21,8 @@ user2:
     - "/v2/test/*"
 
 user3:
+  profile: user3
+  region: "ap-southeast-1"
   localhost: http://localhost:8000
   remotehost: https://user1.xxxx.com
   request: https://sqs.{{region}}.amazonaws.com/{{accountId}}/{{queueId}}

@@ -1,33 +1,46 @@
-import * as sqs from '@aws-sdk/client-sqs';
+import { defaultProvider } from '@aws-sdk/credential-provider-node'
 import { ClientSQSHub } from '../../modules/Hub/ClientSQSHub';
 import fs from 'fs';
-import dotenv from 'dotenv';
+import yaml from 'yaml'
 interface IStart {
-	target: string;
 	config: string;
+	account: string;
 }
 
+export interface IConfig {
+	profile: string;
+	region: string;
+	localhost: string;
+	remotehost: string;
+	request: string;
+	response: string;
+	whitelist: string[];
+}
+
+export type ITunnelConfig = Record<string, IConfig>;
+
+
 export async function start(opts: IStart): Promise<void> {
-	const Config: Record<string, string> = await new Promise((rs, rj) => {
-		fs.readFile(opts.config, null, (err, result) => {
-			if (err) {
-				rj(err);
-			}
-			rs(dotenv.parse(result) as any);
-		});
-	});
-	process.env.AWS_PROFILE = process.env.AWS_PROFILE ?? Config.AWS_PROFILE ?? 'tunnelvision';
-	process.env.AWS_REGION = process.env.AWS_REGION ?? Config.AWS_REGION;
+	const configs: ITunnelConfig = yaml.parse(fs.readFileSync(opts.config, 'utf-8'));
+	const config = configs[opts.account];
+	if (typeof config === 'undefined') {
+		throw new Error(`config for ${opts.account} not found`);
+	}
+	const credentials = await defaultProvider({ profile: config.profile })({ forceRefresh: true })
 	const hub = new ClientSQSHub({
 		incoming: {
-			channel: Config.REQUEST_QUEUE,
-			hostname: opts.target ?? Config.TARGET_HOST
+			channel: config.request,
+			hostname: config.localhost,
 		},
 		outgoing: {
-			channel: Config.RESPONSE_QUEUE,
-			hostname: Config.REMOTE_HOST,
-			client: new sqs.SQSClient({})
+			channel: config.response,
+			hostname: config.remotehost,
 		},
+		awsConfig: {
+			credentials,
+			region: config.region,
+		},
+		whitelist: config.whitelist,
 		stdout: process.stdout
 	});
 	await hub.start();
